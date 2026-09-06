@@ -1,12 +1,12 @@
 {
   "name": "@zetagoaurum-dev/reddit-scraper",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "High-performance Reddit Scraper & OSINT Engine for Node.js and CLI. Scrapes Subreddits, Posts, Nested Comments, User Profiles, and Global Search with Anti-Bot & OAuth2 Support.",
   "main": "lib/index.js",
   "types": "types/index.d.ts",
   "bin": {
-    "reddit-scraper": "./bin/cli.js",
-    "zetago-reddit": "./bin/cli.js"
+    "reddit-scraper": "bin/cli.js",
+    "zetago-reddit": "bin/cli.js"
   },
   "exports": {
     ".": {
