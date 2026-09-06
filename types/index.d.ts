@@ -256,6 +256,55 @@ export class SubredditWatcher extends EventEmitter {
   stop(): this;
 }
 
+
+export interface MediaFileItem {
+  type: 'video' | 'audio' | 'image' | 'gif' | 'link';
+  url: string;
+  ext: string;
+  width?: number;
+  height?: number;
+  index?: number;
+  filename: string;
+}
+
+export interface VideoDetailsItem {
+  videoUrl: string;
+  audioUrl: string | null;
+  hlsUrl: string | null;
+  width?: number;
+  height?: number;
+  duration?: number;
+  isGif?: boolean;
+}
+
+export interface RedditRawMediaReport {
+  postId: string;
+  title: string;
+  author: string;
+  subreddit: string;
+  permalink: string;
+  mediaType: 'video' | 'gallery' | 'image' | 'gif' | 'external' | 'none';
+  hasAudio: boolean;
+  files: MediaFileItem[];
+  hlsPlaylistUrl: string | null;
+  videoDetails: VideoDetailsItem | null;
+}
+
+export interface DownloadMediaOptions {
+  outputDir?: string;
+  mergeAudio?: boolean;
+  filename?: string;
+}
+
+export interface DownloadResult {
+  success: boolean;
+  mediaType: string;
+  merged: boolean;
+  hasAudio: boolean;
+  savedFiles: string[];
+  totalFiles: number;
+}
+
 export interface ApiServerOptions {
   port?: number;
   host?: string;
@@ -282,6 +331,8 @@ export class RedditScraper {
   getUserPosts(username: string, options?: UserPostsOptions): Promise<Post[]>;
   getUserComments(username: string, options?: UserPostsOptions): Promise<Comment[]>;
   watchSubreddit(options: WatcherOptions): SubredditWatcher;
+  scrapeMedia(postIdOrUrlOrPost: string | Post | any): Promise<RedditRawMediaReport>;
+  downloadMedia(postIdOrUrlOrPost: string | Post | any, options?: DownloadMediaOptions): Promise<DownloadResult>;
   formatForBot(post: Post, options?: BotFormatOptions): string;
   extractMedia(post: Post): MediaAttachment;
   export(data: any, options: ExportOptions): string;
@@ -290,6 +341,9 @@ export class RedditScraper {
 export function formatForBot(post: Post, options?: BotFormatOptions): string;
 export function extractMedia(post: Post): MediaAttachment;
 export function createApiServer(options?: ApiServerOptions): ApiServerInstance;
+export function extractRawMedia(postOrData: any): RedditRawMediaReport;
+export function downloadMedia(postOrData: any, options?: DownloadMediaOptions): Promise<DownloadResult>;
+export function isFfmpegAvailable(): Promise<boolean>;
 
 export function exportToJson(data: any, filePath: string): string;
 export function exportToCsv(data: any, filePath: string, headers?: string[] | null): string;

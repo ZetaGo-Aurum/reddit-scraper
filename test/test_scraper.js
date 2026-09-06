@@ -34,6 +34,8 @@ const {
   exportToMarkdown,
   formatForBot,
   extractMedia,
+  extractRawMedia,
+  isFfmpegAvailable,
   createApiServer,
 } = require('../lib');
 
@@ -432,10 +434,63 @@ async function main() {
     });
   });
 
+
+  // 5. Test Raw Media Extraction & FFmpeg Detector
+  it('should extract raw media from Reddit video with separate audio stream', () => {
+    const videoPost = {
+      id: 'vid123',
+      title: 'Awesome Clip',
+      is_video: true,
+      media: {
+        reddit_video: {
+          fallback_url: 'https://v.redd.it/xyz123/DASH_1080.mp4?source=fallback',
+          hls_url: 'https://v.redd.it/xyz123/HLSPlaylist.m3u8',
+          width: 1920,
+          height: 1080,
+          duration: 25,
+          is_gif: false,
+        },
+      },
+    };
+
+    const media = extractRawMedia(videoPost);
+    assert.strictEqual(media.mediaType, 'video');
+    assert.strictEqual(media.hasAudio, true);
+    assert.strictEqual(media.files.length, 2); // video + audio
+    assert.strictEqual(media.files[0].type, 'video');
+    assert.strictEqual(media.files[1].type, 'audio');
+    assert.ok(media.files[1].url.includes('DASH_audio.mp4'));
+  });
+
+  it('should extract all full-resolution photos from Reddit Gallery albums', () => {
+    const galleryPost = {
+      id: 'gal123',
+      title: 'Trip to Tokyo',
+      gallery_data: {
+        items: [{ media_id: 'img_a' }, { media_id: 'img_b' }],
+      },
+      media_metadata: {
+        img_a: { s: { u: 'https://preview.redd.it/img_a.jpg?width=1080&amp;crop=smart', x: 1080, y: 1920 } },
+        img_b: { s: { u: 'https://preview.redd.it/img_b.jpg?width=1080&amp;crop=smart', x: 1080, y: 1920 } },
+      },
+    };
+
+    const media = extractRawMedia(galleryPost);
+    assert.strictEqual(media.mediaType, 'gallery');
+    assert.strictEqual(media.files.length, 2);
+    assert.strictEqual(media.files[0].url, 'https://i.redd.it/img_a.jpg');
+    assert.strictEqual(media.files[1].url, 'https://i.redd.it/img_b.jpg');
+  });
+
+  await itAsync('should detect host FFmpeg availability', async () => {
+    const available = await isFfmpegAvailable();
+    assert.strictEqual(typeof available, 'boolean');
+  });
+
   console.log('\n--------------------------------------------------------');
   console.log(`Results: ${passedTests} / ${totalTests} tests passed.`);
   if (passedTests === totalTests) {
-    console.log('\x1b[32m✔ ALL 14 UNIT TESTS PASSED PERFECTLY!\x1b[0m\n');
+    console.log('\x1b[32m✔ ALL 17 UNIT TESTS PASSED PERFECTLY!\x1b[0m\n');
   } else {
     console.error('\x1b[31m✖ SOME TESTS FAILED!\x1b[0m\n');
     process.exit(1);

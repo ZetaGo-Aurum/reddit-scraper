@@ -32,6 +32,7 @@
 
 - 🔍 **Global & Subreddit Search**: Search posts across all of Reddit or restrict to specific subreddits with filters (relevance, hot, top, new, comments).
 - 📜 **Full Subreddit Scraping**: Extract `hot`, `new`, `top`, and `rising` posts with pagination tokens (`after`).
+- 📥 **Raw Media Scraping & Auto-Downloader**: Scrape direct image links, full multi-image gallery albums, and native Reddit videos with automatic DASH audio muxing via FFmpeg (`scrapeMedia`, `downloadMedia`, `reddit-scraper download`).
 - 🤖 **Chatbot Ready**: Built-in helpers to format posts for **WhatsApp (Baileys)**, **Discord**, and **Telegram** with direct media URL extraction (`extractMedia`, `formatForBot`).
 - 📡 **Subreddit Event Stream Watcher**: Event-driven watcher that continuously polls subreddits for incoming new submissions (`watchSubreddit`).
 - 🚀 **Zero-Dependency REST API Microservice**: Built-in CORS-enabled micro HTTP server (`createApiServer`, `reddit-scraper serve`).
@@ -200,6 +201,51 @@ reddit-scraper user ZetaGo-Aurum --mock
 ```
 
 ---
+
+
+## 📥 Raw Media Scraping & Direct Downloader
+
+Reddit hides raw media URLs behind complex metadata structures and separate audio/video DASH streams. `zetago-reddit-scraper` provides native raw media extraction and automated downloads:
+
+### 1. Extract Raw Direct URLs (Images, Full Galleries, Video & Audio Streams)
+
+```javascript
+import { RedditScraper } from 'zetago-reddit-scraper';
+
+const scraper = new RedditScraper();
+const media = await scraper.scrapeMedia('https://reddit.com/r/pics/comments/1cv9a01');
+
+console.log('Media Type:', media.mediaType); // 'video' | 'gallery' | 'image' | 'gif'
+console.log('Direct Files:', media.files);
+// [
+//   { type: 'image', url: 'https://i.redd.it/photo1.jpg', width: 1920, height: 1080 },
+//   { type: 'image', url: 'https://i.redd.it/photo2.jpg', width: 1920, height: 1080 }
+// ]
+```
+
+### 2. Download Raw Media Directly to Disk (with Automatic FFmpeg Audio Muxing)
+
+When downloading native Reddit videos (`v.redd.it`), the engine automatically pulls the separate video and audio streams and merges them into a complete, synchronized MP4 using FFmpeg:
+
+```javascript
+const result = await scraper.downloadMedia('1cv9a01', {
+  outputDir: './downloads',
+  mergeAudio: true, // Auto-merges video + audio stream into single playable MP4
+});
+
+console.log('Saved files:', result.savedFiles);
+// ['/home/.../downloads/Awesome_Clip_1cv9a01.mp4']
+```
+
+### 3. Via CLI
+
+```bash
+# Inspect direct raw media links and video/audio stream URLs
+reddit-scraper media 1cv9a01
+
+# Download full gallery or video (with audio merged) to a folder
+reddit-scraper download 1cv9a01 -o ./my_downloads
+```
 
 ## 💻 CLI (Command Line Interface)
 

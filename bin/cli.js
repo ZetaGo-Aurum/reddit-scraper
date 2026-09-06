@@ -28,6 +28,7 @@ const { RedditScraper } = require('../lib/scraper');
 const { RedditConfig, CONFIG_FILE } = require('../lib/config');
 const { truncate, exportToJson, exportToCsv, exportToMarkdown } = require('../lib/utils');
 const { formatForBot, extractMedia } = require('../lib/bot');
+const { extractRawMedia, downloadMedia } = require('../lib/media');
 const { createApiServer } = require('../lib/server');
 const pkg = require('../package.json');
 
@@ -165,6 +166,95 @@ program
       handleOutput(posts, opts.format, opts.output, 'posts');
     } catch (err) {
       spinner.fail(`Search failed: ${err.message}`);
+      process.exit(1);
+    }
+  });
+
+
+// Command: Raw Media Info
+program
+  .command('media <id_or_url>')
+  .description('Scrape raw direct media links (images, full gallery, video & audio streams)')
+  .option('-f, --format <format>', 'Output format (table, json)', 'table')
+  .option('-o, --output <file>', 'Save output to a JSON file')
+  .option('--mock', 'Run in mock mode (offline testing)')
+  .action(async (idOrUrl, opts) => {
+    printBanner();
+    const spinner = ora(`Extracting raw media from ${idOrUrl}...`).start();
+    try {
+      const scraper = new RedditScraper({ mock: Boolean(opts.mock) });
+      const rawMedia = await scraper.scrapeMedia(idOrUrl);
+      spinner.succeed(`Media extracted: Type [${rawMedia.mediaType.toUpperCase()}] with ${rawMedia.files.length} file(s)`);
+
+      if (opts.output) {
+        exportToJson(rawMedia, opts.output);
+        console.log(chalk.green(`\n✔ Media data saved to ${opts.output}`));
+        return;
+      }
+
+      if (opts.format === 'json') {
+        console.log(JSON.stringify(rawMedia, null, 2));
+        return;
+      }
+
+      const table = new Table({
+        head: [chalk.cyan('Type'), chalk.cyan('Resolution'), chalk.cyan('Direct Raw URL')],
+        colWidths: [10, 14, 55],
+        wordWrap: true,
+      });
+
+      rawMedia.files.forEach((f) => {
+        table.push([
+          f.type.toUpperCase(),
+          f.width && f.height ? `${f.width}x${f.height}` : 'Original',
+          f.url,
+        ]);
+      });
+      console.log(table.toString());
+
+      if (rawMedia.videoDetails) {
+        console.log(chalk.yellow('\nVideo Stream Details:'));
+        console.log(`  - Video Stream : ${rawMedia.videoDetails.videoUrl}`);
+        console.log(`  - Audio Stream : ${rawMedia.videoDetails.audioUrl || 'None (Muted/GIF)'}`);
+        if (rawMedia.videoDetails.hlsUrl) {
+          console.log(`  - HLS Playlist : ${rawMedia.videoDetails.hlsUrl}`);
+        }
+      }
+    } catch (err) {
+      spinner.fail(`Failed to extract media: ${err.message}`);
+      process.exit(1);
+    }
+  });
+
+// Command: Download Raw Media
+program
+  .command('download <id_or_url>')
+  .alias('dl')
+  .description('Download raw media (image, full gallery, or video with merged audio) to disk')
+  .option('-o, --output-dir <dir>', 'Directory to save downloaded files', './downloads')
+  .option('--no-merge', 'Do not merge video and audio streams with FFmpeg')
+  .option('--mock', 'Run in mock mode (offline testing)')
+  .action(async (idOrUrl, opts) => {
+    printBanner();
+    const spinner = ora(`Preparing download for ${idOrUrl}...`).start();
+    try {
+      const scraper = new RedditScraper({ mock: Boolean(opts.mock) });
+      spinner.text = 'Scraping media streams and downloading...';
+      const result = await scraper.downloadMedia(idOrUrl, {
+        outputDir: opts.outputDir,
+        mergeAudio: opts.merge !== false,
+      });
+
+      spinner.succeed(chalk.green(`Downloaded ${result.savedFiles.length} file(s) successfully!`));
+      console.log(chalk.bold('\nSaved Files:'));
+      result.savedFiles.forEach((f, i) => {
+        console.log(chalk.cyan(`  [${i + 1}] ${f}`));
+      });
+      if (result.merged) {
+        console.log(chalk.green(`\n✔ Audio & Video automatically muxed into complete MP4 with FFmpeg.`));
+      }
+    } catch (err) {
+      spinner.fail(`Download failed: ${err.message}`);
       process.exit(1);
     }
   });
