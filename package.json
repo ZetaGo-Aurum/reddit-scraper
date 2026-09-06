@@ -1,0 +1,68 @@
+{
+  "name": "@zetagoaurum-dev/reddit-scraper",
+  "version": "1.0.0",
+  "description": "High-performance Reddit Scraper & OSINT Engine for Node.js and CLI. Scrapes Subreddits, Posts, Nested Comments, User Profiles, and Global Search with Anti-Bot & OAuth2 Support.",
+  "main": "lib/index.js",
+  "types": "types/index.d.ts",
+  "bin": {
+    "reddit-scraper": "./bin/cli.js",
+    "zetago-reddit": "./bin/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./types/index.d.ts",
+      "import": "./lib/index.mjs",
+      "require": "./lib/index.js"
+    }
+  },
+  "files": [
+    "lib",
+    "bin",
+    "types",
+    "examples",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "start": "node bin/cli.js",
+    "test": "node test/test_scraper.js",
+    "test:live": "node test/test_live.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ZetaGo-Aurum/reddit-scraper.git"
+  },
+  "keywords": [
+    "reddit",
+    "reddit-scraper",
+    "scraper",
+    "osint",
+    "crawler",
+    "reddit-api",
+    "reddit-comments",
+    "subreddit-scraper",
+    "reddit-user",
+    "social-media",
+    "reddit-cli",
+    "zetago-aurum"
+  ],
+  "author": "ZetaGo-Aurum",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ZetaGo-Aurum/reddit-scraper/issues"
+  },
+  "homepage": "https://github.com/ZetaGo-Aurum/reddit-scraper#readme",
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "dependencies": {
+    "axios": "^1.7.9",
+    "chalk": "^4.1.2",
+    "cli-table3": "^0.6.5",
+    "commander": "^12.1.0",
+    "dotenv": "^16.4.7",
+    "figlet": "^1.8.0",
+    "gradient-string": "^2.0.2",
+    "ora": "^5.4.1"
+  }
+}

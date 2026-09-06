@@ -1,0 +1,58 @@
+{
+  "id": "1cv9a01",
+  "title": "Showcase: Modern Autonomous Agent Coding Assistant built with Deep Reasoning",
+  "author": "zetagoaurum",
+  "subreddit": "programming",
+  "score": 3420,
+  "upvoteRatio": 0.96,
+  "numComments": 248,
+  "createdUtc": 1714500000,
+  "createdAt": "2024-04-30T18:00:00.000Z",
+  "url": "https://github.com/ZetaGo-Aurum/reddit-scraper",
+  "permalink": "https://www.reddit.com/r/programming/comments/1cv9a01",
+  "selftext": "Full nested comment tree demonstration.",
+  "isSelf": true,
+  "isVideo": false,
+  "over18": false,
+  "linkFlairText": null,
+  "mediaUrl": null,
+  "comments": [
+    {
+      "id": "c_top_1",
+      "author": "dev_guru",
+      "body": "This is brilliant! Does it support export directly to CSV and Markdown?",
+      "score": 182,
+      "createdUtc": 1714501200,
+      "createdAt": "2024-04-30T18:20:00.000Z",
+      "permalink": "https://www.reddit.com/r/programming/comments/1cv9a01/comment/c_top_1",
+      "parentId": "t3_1cv9a01",
+      "depth": 0,
+      "replies": [
+        {
+          "id": "c_sub_1",
+          "author": "zetagoaurum",
+          "body": "Yes! It includes built-in CSV, JSON, and Markdown export utilities out of the box.",
+          "score": 95,
+          "createdUtc": 1714501800,
+          "createdAt": "2024-04-30T18:30:00.000Z",
+          "permalink": "https://www.reddit.com/r/programming/comments/1cv9a01/comment/c_sub_1",
+          "parentId": "t1_c_top_1",
+          "depth": 0,
+          "replies": []
+        }
+      ]
+    },
+    {
+      "id": "c_top_2",
+      "author": "cloud_architect",
+      "body": "Great to see full TypeScript support with declarations and zero hassle setup.",
+      "score": 64,
+      "createdUtc": 1714502500,
+      "createdAt": "2024-04-30T18:41:40.000Z",
+      "permalink": "https://www.reddit.com/r/programming/comments/1cv9a01/comment/c_top_2",
+      "parentId": "t3_1cv9a01",
+      "depth": 0,
+      "replies": []
+    }
+  ]
+}
