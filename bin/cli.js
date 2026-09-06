@@ -27,6 +27,8 @@ const gradient = require('gradient-string');
 const { RedditScraper } = require('../lib/scraper');
 const { RedditConfig, CONFIG_FILE } = require('../lib/config');
 const { truncate, exportToJson, exportToCsv, exportToMarkdown } = require('../lib/utils');
+const { formatForBot, extractMedia } = require('../lib/bot');
+const { createApiServer } = require('../lib/server');
 const pkg = require('../package.json');
 
 const program = new Command();
@@ -34,7 +36,7 @@ const program = new Command();
 function printBanner() {
   const banner = figlet.textSync('REDDIT SCRAPER', { font: 'Standard' });
   console.log(gradient.pastel.multiline(banner));
-  console.log(chalk.bold.hex('#FF4500')(` 🔥 Reddit OSINT & Data Scraper v${pkg.version}`));
+  console.log(chalk.bold.hex('#FF4500')(` 🔥 Reddit OSINT, Bot & API Engine v${pkg.version}`));
   console.log(chalk.cyan(` 👤 Author: ZetaGo-Aurum  |  🔗 https://github.com/ZetaGo-Aurum/reddit-scraper`));
   console.log(chalk.gray(` --------------------------------------------------------------------------------\n`));
 }
@@ -146,11 +148,12 @@ program
   .option('-l, --limit <limit>', 'Number of results (max 100)', (v) => parseInt(v, 10), 25)
   .option('-f, --format <format>', 'Output format (table, json, csv, md)', 'table')
   .option('-o, --output <file>', 'Save output to a file')
+  .option('--mock', 'Run in mock mode (offline testing)')
   .action(async (query, opts) => {
     printBanner();
     const spinner = ora(`Searching Reddit for "${query}"...`).start();
     try {
-      const scraper = new RedditScraper();
+      const scraper = new RedditScraper({ mock: Boolean(opts.mock) });
       const posts = await scraper.search({
         query,
         subreddit: opts.subreddit,
@@ -158,7 +161,7 @@ program
         timeFilter: opts.time,
         limit: opts.limit,
       });
-      spinner.succeed(`Found ${posts.length} posts matching "${query}"`);
+      spinner.succeed(`Found ${posts.length} posts matching "${query}" ${opts.mock ? '(MOCK)' : ''}`);
       handleOutput(posts, opts.format, opts.output, 'posts');
     } catch (err) {
       spinner.fail(`Search failed: ${err.message}`);
@@ -176,23 +179,126 @@ program
   .option('-l, --limit <limit>', 'Number of posts (max 100)', (v) => parseInt(v, 10), 25)
   .option('-f, --format <format>', 'Output format (table, json, csv, md)', 'table')
   .option('-o, --output <file>', 'Save output to a file')
+  .option('--mock', 'Run in mock mode (offline testing)')
   .action(async (name, opts) => {
     printBanner();
     const spinner = ora(`Scraping r/${name} (${opts.sort})...`).start();
     try {
-      const scraper = new RedditScraper();
+      const scraper = new RedditScraper({ mock: Boolean(opts.mock) });
       const posts = await scraper.getSubredditPosts({
         subreddit: name,
         sort: opts.sort,
         timeFilter: opts.time,
         limit: opts.limit,
       });
-      spinner.succeed(`Scraped ${posts.length} posts from r/${name}`);
+      spinner.succeed(`Scraped ${posts.length} posts from r/${name} ${opts.mock ? '(MOCK)' : ''}`);
       handleOutput(posts, opts.format, opts.output, 'posts');
     } catch (err) {
       spinner.fail(`Scraping failed: ${err.message}`);
       process.exit(1);
     }
+  });
+
+// Command: Random Post (for Bots)
+program
+  .command('random [subreddit]')
+  .description('Fetch a random post or media from a subreddit (ideal for bots)')
+  .option('-p, --platform <platform>', 'Format text for platform (whatsapp, discord, telegram, plain)', 'whatsapp')
+  .option('--media', 'Show only direct media attachment URL')
+  .option('--mock', 'Run in mock mode (offline testing)')
+  .action(async (subreddit = 'memes', opts) => {
+    printBanner();
+    const spinner = ora(`Fetching random post from r/${subreddit}...`).start();
+    try {
+      const scraper = new RedditScraper({ mock: Boolean(opts.mock) });
+      const post = await scraper.getRandomPost(subreddit);
+      const media = extractMedia(post);
+      spinner.succeed(`Fetched random post from r/${subreddit} ${opts.mock ? '(MOCK)' : ''}`);
+
+      if (opts.media) {
+        console.log(chalk.bold('Media URL:'), chalk.green(media.url || 'No direct media'));
+        return;
+      }
+
+      console.log(chalk.yellow(`\n--- [Bot Format: ${opts.platform.toUpperCase()}] ---`));
+      console.log(formatForBot(post, { platform: opts.platform }));
+      if (media.url) {
+        console.log(chalk.cyan(`\nAttachment [${media.type.toUpperCase()}]:`), media.url);
+      }
+    } catch (err) {
+      spinner.fail(`Failed to fetch random post: ${err.message}`);
+      process.exit(1);
+    }
+  });
+
+// Command: Watch Subreddit (for Bots & Streamers)
+program
+  .command('watch <subreddit>')
+  .description('Live poll and watch a subreddit for new incoming submissions')
+  .option('-i, --interval <sec>', 'Polling interval in seconds (min 5s)', (v) => parseInt(v, 10), 15)
+  .option('-p, --platform <platform>', 'Format notification for bot (whatsapp, discord, telegram)', 'whatsapp')
+  .option('--mock', 'Run in mock mode (offline testing)')
+  .action((subreddit, opts) => {
+    printBanner();
+    console.log(chalk.green(`👀 Watching r/${subreddit} for new posts every ${opts.interval}s...`));
+    console.log(chalk.gray(`Press Ctrl+C to terminate stream.\n`));
+
+    const scraper = new RedditScraper({ mock: Boolean(opts.mock) });
+    const watcher = scraper.watchSubreddit({
+      subreddit,
+      intervalMs: opts.interval * 1000,
+    });
+
+    watcher.on('ready', (evt) => {
+      console.log(chalk.blue(`✔ Connected to r/${evt.subreddit}. Initialized with ${evt.initialCount} existing posts.`));
+    });
+
+    watcher.on('post', (post) => {
+      console.log(chalk.green(`\n🔔 [NEW POST in r/${post.subreddit}]`));
+      console.log(formatForBot(post, { platform: opts.platform }));
+      const media = extractMedia(post);
+      if (media.url) console.log(chalk.cyan(`Media:`), media.url);
+      console.log(chalk.gray('--------------------------------------------------'));
+    });
+
+    watcher.on('error', (err) => {
+      console.error(chalk.red(`[Watcher Error] ${err.message}`));
+    });
+
+    process.on('SIGINT', () => {
+      watcher.stop();
+      console.log(chalk.yellow('\nStopped subreddit watcher.'));
+      process.exit(0);
+    });
+  });
+
+// Command: REST API Server
+program
+  .command('serve')
+  .description('Start a local REST API microservice with CORS enabled')
+  .option('-p, --port <port>', 'Port number to listen on', (v) => parseInt(v, 10), 3000)
+  .option('-h, --host <host>', 'Host address to bind to', '0.0.0.0')
+  .option('--mock', 'Run API server in mock mode (instant offline testing)')
+  .action((opts) => {
+    printBanner();
+    const { server, start } = createApiServer({
+      port: opts.port,
+      host: opts.host,
+      mock: Boolean(opts.mock),
+    });
+
+    start(({ port, host }) => {
+      console.log(chalk.bold.green(`🚀 ZetaGo Reddit REST API Server is running!`));
+      console.log(`📡 URL: ${chalk.cyan(`http://${host === '0.0.0.0' ? 'localhost' : host}:${port}`)}`);
+      console.log(`📚 Endpoints:`);
+      console.log(`   - ${chalk.yellow(`GET http://localhost:${port}/api/search?q=nodejs`)}`);
+      console.log(`   - ${chalk.yellow(`GET http://localhost:${port}/api/r/programming`)}`);
+      console.log(`   - ${chalk.yellow(`GET http://localhost:${port}/api/r/memes/random`)}`);
+      console.log(`   - ${chalk.yellow(`GET http://localhost:${port}/api/bot/random?subreddit=memes&platform=whatsapp`)}`);
+      console.log(`   - ${chalk.yellow(`GET http://localhost:${port}/health`)}`);
+      console.log(chalk.gray(`\nMode: ${opts.mock ? chalk.yellow('MOCK (Offline / Zero Rate-Limit)') : chalk.green('LIVE API')}`));
+      console.log(chalk.gray(`Press Ctrl+C to stop server.\n`));
+    });
   });
 
 // Command: About Subreddit
@@ -201,13 +307,14 @@ program
   .description('Get metadata and metrics for a subreddit')
   .option('-f, --format <format>', 'Output format (table, json)', 'table')
   .option('-o, --output <file>', 'Save output to a file')
+  .option('--mock', 'Run in mock mode (offline testing)')
   .action(async (subreddit, opts) => {
     printBanner();
     const spinner = ora(`Fetching details for r/${subreddit}...`).start();
     try {
-      const scraper = new RedditScraper();
+      const scraper = new RedditScraper({ mock: Boolean(opts.mock) });
       const info = await scraper.getSubredditAbout(subreddit);
-      spinner.succeed(`Retrieved info for r/${subreddit}`);
+      spinner.succeed(`Retrieved info for r/${subreddit} ${opts.mock ? '(MOCK)' : ''}`);
       handleOutput(info, opts.format, opts.output, 'subreddit');
     } catch (err) {
       spinner.fail(`Failed to fetch subreddit: ${err.message}`);
@@ -223,16 +330,17 @@ program
   .option('-l, --limit <limit>', 'Maximum comments', (v) => parseInt(v, 10), 50)
   .option('-f, --format <format>', 'Output format (table, json, md)', 'json')
   .option('-o, --output <file>', 'Save output to a file')
+  .option('--mock', 'Run in mock mode (offline testing)')
   .action(async (idOrUrl, opts) => {
     printBanner();
     const spinner = ora(`Scraping post and comments...`).start();
     try {
-      const scraper = new RedditScraper();
+      const scraper = new RedditScraper({ mock: Boolean(opts.mock) });
       const post = await scraper.getPost(idOrUrl, {
         depth: opts.depth,
         limit: opts.limit,
       });
-      spinner.succeed(`Scraped post "${truncate(post.title, 40)}" with ${post.comments.length} top comments`);
+      spinner.succeed(`Scraped post "${truncate(post.title, 40)}" with ${post.comments.length} top comments ${opts.mock ? '(MOCK)' : ''}`);
       handleOutput(post, opts.format, opts.output, 'posts');
     } catch (err) {
       spinner.fail(`Failed to scrape post: ${err.message}`);
@@ -249,13 +357,14 @@ program
   .option('-l, --limit <limit>', 'Number of user posts/comments', (v) => parseInt(v, 10), 10)
   .option('-f, --format <format>', 'Output format (table, json, csv)', 'table')
   .option('-o, --output <file>', 'Save output to a file')
+  .option('--mock', 'Run in mock mode (offline testing)')
   .action(async (username, opts) => {
     printBanner();
     const spinner = ora(`Fetching profile for u/${username}...`).start();
     try {
-      const scraper = new RedditScraper();
+      const scraper = new RedditScraper({ mock: Boolean(opts.mock) });
       const profile = await scraper.getUserProfile(username);
-      spinner.succeed(`Fetched profile for u/${username}`);
+      spinner.succeed(`Fetched profile for u/${username} ${opts.mock ? '(MOCK)' : ''}`);
 
       if (opts.posts) {
         spinner.start(`Fetching posts by u/${username}...`);

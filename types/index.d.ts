@@ -14,6 +14,9 @@
  * ====================================================================
  */
 
+import { EventEmitter } from 'events';
+import { Server } from 'http';
+
 export interface CommentData {
   id: string;
   author: string;
@@ -167,6 +170,7 @@ export interface RedditConfigOptions {
   sessionCookie?: string | null;
   proxy?: string | null;
   timeout?: number;
+  mock?: boolean;
 }
 
 export class RedditConfig {
@@ -227,19 +231,65 @@ export interface ExportOptions {
   title?: string;
 }
 
+export interface BotFormatOptions {
+  platform?: 'whatsapp' | 'wa' | 'discord' | 'telegram' | 'tg' | 'plain';
+  maxTextLength?: number;
+  includeMediaUrl?: boolean;
+}
+
+export interface MediaAttachment {
+  type: 'image' | 'video' | 'gallery' | 'link' | 'text';
+  url: string;
+  isDirect: boolean;
+  isRedditVideo?: boolean;
+}
+
+export interface WatcherOptions {
+  subreddit: string;
+  intervalMs?: number;
+  limit?: number;
+}
+
+export class SubredditWatcher extends EventEmitter {
+  constructor(scraper: RedditScraper, options: WatcherOptions);
+  start(): this;
+  stop(): this;
+}
+
+export interface ApiServerOptions {
+  port?: number;
+  host?: string;
+  mock?: boolean;
+  scraper?: RedditScraper;
+}
+
+export interface ApiServerInstance {
+  server: Server;
+  start: (callback?: (info: { port: number; host: string }) => void) => Server;
+}
+
 export class RedditScraper {
-  client: RedditClient;
+  client: RedditClient | null;
+  isMock: boolean;
   constructor(clientOrConfig?: RedditClient | RedditConfig | RedditConfigOptions);
 
   search(options: SearchOptions): Promise<Post[]>;
   getSubredditPosts(options: SubredditPostsOptions): Promise<Post[]>;
   getSubredditAbout(subreddit: string): Promise<SubredditInfo>;
+  getRandomPost(subreddit?: string, sort?: 'hot' | 'new' | 'top'): Promise<Post>;
   getPost(postIdOrUrl: string, options?: GetPostOptions): Promise<Post>;
   getUserProfile(username: string): Promise<UserProfile>;
   getUserPosts(username: string, options?: UserPostsOptions): Promise<Post[]>;
   getUserComments(username: string, options?: UserPostsOptions): Promise<Comment[]>;
+  watchSubreddit(options: WatcherOptions): SubredditWatcher;
+  formatForBot(post: Post, options?: BotFormatOptions): string;
+  extractMedia(post: Post): MediaAttachment;
   export(data: any, options: ExportOptions): string;
 }
+
+export function formatForBot(post: Post, options?: BotFormatOptions): string;
+export function extractMedia(post: Post): MediaAttachment;
+export function createApiServer(options?: ApiServerOptions): ApiServerInstance;
 
 export function exportToJson(data: any, filePath: string): string;
 export function exportToCsv(data: any, filePath: string, headers?: string[] | null): string;
