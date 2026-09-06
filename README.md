@@ -4,7 +4,7 @@
 
 ### High-performance, production-grade Reddit Scraper & OSINT Toolkit for Node.js, TypeScript, and CLI.
 
-[![npm version](https://img.shields.io/npm/v/@zetagoaurum-dev/reddit-scraper.svg?style=for-the-badge&color=FF4500)](https://www.npmjs.com/package/@zetagoaurum-dev/reddit-scraper)
+[![npm version](https://img.shields.io/npm/v/zetago-reddit-scraper.svg?style=for-the-badge&color=FF4500)](https://www.npmjs.com/package/zetago-reddit-scraper)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 [![Node.js](https://img.shields.io/badge/Node.js-%3E%3D16.0.0-brightgreen.svg?style=for-the-badge&logo=node.js)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue.svg?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
@@ -33,7 +33,7 @@
 - 💬 **Deep Comment Tree Parsing**: Recursively extracts nested comment threads with user scores, authors, and timestamps up to arbitrary depth.
 - 👤 **User Profile & OSINT**: Fetch user metadata, link/comment karma breakdown, moderator status, submitted posts, and user comments.
 - 🛡️ **Anti-Bot & OAuth2 Support**: Seamless fallback between public `.json` endpoints, browser header impersonation, and official OAuth2 application tokens.
-- ⚡ **Zero-Config CLI & NPX**: Run instantly without installing via `npx @zetagoaurum-dev/reddit-scraper search "AI"`.
+- ⚡ **Zero-Config CLI & NPX**: Run instantly without installing via `npx zetago-reddit-scraper search "AI"`.
 - 📦 **Dual Module & TypeScript Native**: Full CommonJS (`require`), ES Modules (`import`), and comprehensive TypeScript typings (`.d.ts`).
 - 📊 **Multi-Format Data Exporter**: Export scraped feeds directly to formatted **JSON**, **CSV**, or formatted **Markdown** tables.
 
@@ -43,17 +43,17 @@
 
 ### Via NPM:
 ```bash
-npm install @zetagoaurum-dev/reddit-scraper
+npm install zetago-reddit-scraper
 ```
 
 ### Global CLI Installation:
 ```bash
-npm install -g @zetagoaurum-dev/reddit-scraper
+npm install -g zetago-reddit-scraper
 ```
 
 ### Instant Execution with NPX:
 ```bash
-npx @zetagoaurum-dev/reddit-scraper --help
+npx zetago-reddit-scraper --help
 ```
 
 ---
@@ -63,8 +63,8 @@ npx @zetagoaurum-dev/reddit-scraper --help
 ### JavaScript (ESM or CommonJS)
 
 ```javascript
-import { RedditScraper } from '@zetagoaurum-dev/reddit-scraper';
-// Or CommonJS: const { RedditScraper } = require('@zetagoaurum-dev/reddit-scraper');
+import { RedditScraper } from 'zetago-reddit-scraper';
+// Or CommonJS: const { RedditScraper } = require('zetago-reddit-scraper');
 
 const scraper = new RedditScraper();
 
@@ -85,7 +85,7 @@ posts.forEach((post) => {
 ### TypeScript
 
 ```typescript
-import { RedditScraper, Post, Comment } from '@zetagoaurum-dev/reddit-scraper';
+import { RedditScraper, Post, Comment } from 'zetago-reddit-scraper';
 
 const scraper = new RedditScraper();
 const post: Post = await scraper.getPost('1cv9a01', { depth: 3, limit: 50 });
